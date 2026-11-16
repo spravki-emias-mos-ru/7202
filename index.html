@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Проверка документа по QR-коду</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Roboto, Arial, sans-serif;
+        background: #f5f6f7;
+    }
+
+    .layout {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    /* Индикатор загрузки */
+    #page-loader {
+        position: fixed;
+        inset: 0;
+        background: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+    }
+
+    .loader {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #dcecf7;
+        border-top: 4px solid #0072bc;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    #page-loader.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Верхняя панель */
+    .header {
+        padding: 30px 0 30px 30px;
+        display: flex;
+        justify-content: flex-start;
+        background: white;
+    }
+
+    .main {
+        flex: 1;
+        padding: 24px;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+    }
+
+    .content {
+        background: #fff;
+        padding: 24px;
+        border-radius: 15px;
+        max-width: 1180px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .xslt_11857s {
+        font-family: "Open Sans", Arial, sans-serif;
+        line-height: 24px;
+        font-size: 15px;
+        color: #333;
+    }
+
+    .xslt_11857s .xslt_text_bold {
+        font-weight: bold;
+    }
+
+    .xslt_11857s .xslt_section:not(:first-child) {
+        margin-top: 24px;
+    }
+
+    /* Выпадающий блок */
+    .signature-details {
+        margin-top: 24px;
+        font-family: "Open Sans", Arial, sans-serif;
+        font-size: 15px;
+        line-height: 24px;
+        color: #333;
+    }
+
+    .signature-details summary {
+        color: #0072bc;
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        width: fit-content;
+    }
+
+    .signature-details summary::-webkit-details-marker {
+        display: none;
+    }
+
+    /* Стрелка */
+    .signature-details summary::after {
+        content: "";
+        width: 9px;
+        height: 9px;
+        border-right: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        transform: rotate(45deg);
+        transition: transform 0.2s ease;
+        flex-shrink: 0;
+        margin-right: 4px;
+        margin-top: -5px;
+    }
+
+    .signature-details[open] summary::after {
+        transform: rotate(225deg);
+        margin-top: 5px;
+    }
+
+    .signature-body {
+        padding-top: 20px;
+    }
+
+    .signature-section {
+        padding-bottom: 0;
+    }
+
+    /* Разделительная линия */
+    .signature-section + .signature-section {
+        border-top: 1px solid #d9d9d9;
+        margin-top: 24px;
+        padding-top: 24px;
+    }
+
+    .signature-label {
+        font-weight: 700;
+    }
+
+    .signature-value {
+        font-weight: 400;
+    }
+
+    /* Одинаковые расстояния между полями */
+    .signature-field + .signature-field {
+        margin-top: 24px;
+    }
+
+    /* Футер */
+    .desktop-footer-wrapper {
+        position: relative;
+        width: 100%;
+        background: white;
+    }
+
+    .desktop-footer {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        padding: 50px 0;
+        max-width: 1180px;
+        width: 90%;
+        margin: 0 auto;
+        gap: 16px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .desktop-footer-left,
+    .desktop-footer-icons {
+        display: flex;
+        align-items: center;
+    }
+
+    .desktop-footer-icons {
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .dit-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-left: 16px;
+    }
+
+    .desktop-footer-text {
+        color: #696969;
+        font-size: 16px;
+        line-height: 1.2;
+        max-width: 150px;
+        white-space: normal;
+        word-wrap: break-word;
+    }
+
+    .ml-4 {
+        margin-left: 4px;
+    }
+
+    img {
+        user-select: none;
+    }
+
+    @media (max-width: 600px) {
+        .header {
+            padding: 20px;
+        }
+
+        .main {
+            padding: 12px;
+        }
+
+        .content {
+            padding: 18px;
+        }
+
+        .desktop-footer {
+            padding: 30px 0;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<!-- Индикатор загрузки -->
+<div id="page-loader">
+    <div class="loader" aria-label="Загрузка"></div>
+</div>
+
+<script>
+    window.addEventListener("load", function () {
+        const loader = document.getElementById("page-loader");
+
+        setTimeout(function () {
+            loader.classList.add("hidden");
+
+            setTimeout(function () {
+                loader.remove();
+            }, 300);
+        }, 800);
+    });
+</script>
+
+<div class="layout">
+
+    <!-- Верхний логотип -->
+    <div class="header">
+        <img src="emias.png" height="60" alt="Логотип">
+    </div>
+
+    <!-- Основной блок -->
+    <div class="main">
+        <div class="content">
+
+            <div class="xslt_11857s">
+
+                <div class="xslt_section">
+                    <div class="xslt_text_bold">Наименование</div>
+                    <div>
+                         Справка о временной нетрудоспособности студента, учащегося техникума, профессионально-технического училища, о болезни, карантине и прочих причинах отсутствия ребенка, посещающего школу, детское дошкольное учреждение
+                    </div>
+                </div>
+
+                <div class="xslt_section">
+                    <div class="xslt_text_bold">Пациент</div>
+                    <div>Малик Русланович В.</div>
+                </div>
+
+                <div class="xslt_section">
+                    <div class="xslt_text_bold">Наименование организации</div>
+                    <div>ГБУЗ ГП № 214 ДЗМ филиал № 2 (ГП № 54)</div>
+                </div>
+
+                <div class="xslt_section">
+                    <div class="xslt_text_bold">Дата оформления</div>
+                    <div>2026-11-01</div>
+                </div>
+
+            </div>
+
+            <!-- Выпадающие сведения -->
+            <details class="signature-details">
+
+                <summary>Сведения об ЭП</summary>
+
+                <div class="signature-body">
+
+                    <!-- Первый раздел -->
+                    <div class="signature-section">
+
+                        <div class="signature-field">
+                            <div class="signature-label">
+                                Сертификат медицинского работника
+                            </div>
+                            <div class="signature-value">
+                                112187141751791757288187847846280564083
+                            </div>
+                        </div>
+
+                        <div class="signature-field">
+                            <div class="signature-label">ФИО работника</div>
+                            <div class="signature-value">
+                                Баламутов Даниил Валерьевич
+                            </div>
+                        </div>
+
+                        <div class="signature-field">
+                            <div class="signature-label">Дата действия</div>
+                            <div class="signature-value">с 07.05.2026 по 13.02.2027</div>
+                        </div>
+
+                    </div>
+
+                    <!-- Второй раздел -->
+                    <div class="signature-section">
+
+                        <div class="signature-field">
+                            <div class="signature-label">
+                                Сертификат медицинской организации
+                            </div>
+                            <div class="signature-value">
+                                169334637699605554762210792407844833831
+                            </div>
+                        </div>
+
+                        <div class="signature-field">
+                            <div class="signature-label">
+                                Наименование организации
+                            </div>
+                            <div class="signature-value">
+                                ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ ГОРОДА МОСКВЫ "ГОРОДСКАЯ ПОЛИКЛИНИКА № 214 ДЕПАРТАМЕНТА ЗДРАВООХРАНЕНИЯ ГОРОДА МОСКВЫ"
+                            </div>
+                        </div>
+
+                        <div class="signature-field">
+                            <div class="signature-label">Дата действия</div>
+                            <div class="signature-value">с 18.09.2026 по 21.11.2027</div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </details>
+
+        </div>
+    </div>
+
+    <!-- Нижняя панель -->
+    <div class="desktop-footer-wrapper">
+
+        <div class="desktop-footer">
+
+            <div class="desktop-footer-left">
+                <img src="emias.png" height="64" alt="Логотип">
+            </div>
+
+            <div class="desktop-footer-icons">
+
+                <img src="mosru.png" height="90" alt="Логотип">
+
+                <div class="dit-group">
+                    <img src="dit.png" height="65" alt="Логотип">
+                    <span class="desktop-footer-text">
+                        Департамент информационных технологий
+                    </span>
+                </div>
+
+                <img
+                    src="mosgorzdrav-logo.png"
+                    class="ml-4 desktop-footer-icon"
+                    height="70"
+                    alt="Логотип"
+                >
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
